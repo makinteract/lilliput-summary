@@ -4,12 +4,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 let selectedFile = null;
 let extractedText = null;
 let currentSummaryLength = 3;
+let apiKeyCollapsed = false;
 
 const inputSection = document.getElementById('inputSection');
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
 const fileName = document.getElementById('fileName');
-const urlInput = document.getElementById('urlInput');
 const lengthSlider = document.getElementById('lengthSlider');
 const lengthValue = document.getElementById('lengthValue');
 const lengthSliderResults = document.getElementById('lengthSliderResults');
@@ -24,8 +24,64 @@ const resummarizeBtn = document.getElementById('resummarizeBtn');
 const questionInput = document.getElementById('questionInput');
 const askBtn = document.getElementById('askBtn');
 const qaHistory = document.getElementById('qaHistory');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const apiKeyStatus = document.getElementById('apiKeyStatus');
+const apiKeyHeader = document.getElementById('apiKeyHeader');
+const apiKeyToggle = document.getElementById('apiKeyToggle');
+const apiKeyContent = document.getElementById('apiKeyContent');
 
 const lengthLabels = ['Very Brief', 'Brief', 'Medium', 'Detailed', 'Very Detailed'];
+const API_KEY_STORAGE = 'openai_api_key';
+
+// Load API key from localStorage on page load
+function loadApiKey() {
+    const savedKey = localStorage.getItem(API_KEY_STORAGE);
+    if (savedKey) {
+        apiKeyInput.value = savedKey;
+        updateApiKeyStatus(true);
+    } else {
+        updateApiKeyStatus(false);
+    }
+}
+
+function updateApiKeyStatus(isSet) {
+    if (isSet) {
+        apiKeyStatus.textContent = '✓ Set';
+        apiKeyStatus.className = 'api-key-status set';
+    } else {
+        apiKeyStatus.textContent = 'Not set';
+        apiKeyStatus.className = 'api-key-status not-set';
+    }
+}
+
+// API key input handlers
+apiKeyInput.addEventListener('input', () => {
+    const key = apiKeyInput.value.trim();
+    if (key) {
+        localStorage.setItem(API_KEY_STORAGE, key);
+        updateApiKeyStatus(true);
+    } else {
+        localStorage.removeItem(API_KEY_STORAGE);
+        updateApiKeyStatus(false);
+    }
+});
+
+// Get current API key
+function getApiKey() {
+    return apiKeyInput.value.trim() || localStorage.getItem(API_KEY_STORAGE) || '';
+}
+
+// Collapsible API key section
+apiKeyHeader.addEventListener('click', () => {
+    apiKeyCollapsed = !apiKeyCollapsed;
+    apiKeyContent.classList.toggle('open');
+    apiKeyToggle.classList.toggle('open');
+});
+
+// Load API key on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadApiKey();
+});
 
 // Drag and drop functionality
 uploadArea.addEventListener('click', () => fileInput.click());
@@ -58,17 +114,6 @@ fileInput.addEventListener('change', (e) => {
     }
 });
 
-urlInput.addEventListener('input', () => {
-    if (urlInput.value.trim()) {
-        selectedFile = null;
-        fileName.textContent = '';
-        fileInput.value = '';
-        summarizeBtn.disabled = false;
-    } else if (!selectedFile) {
-        summarizeBtn.disabled = true;
-    }
-});
-
 lengthSlider.addEventListener('input', (e) => {
     currentSummaryLength = parseInt(e.target.value);
     lengthValue.textContent = lengthLabels[currentSummaryLength - 1];
@@ -92,13 +137,19 @@ function handleFileSelect(file) {
 
     selectedFile = file;
     fileName.textContent = `Selected: ${file.name}`;
-    urlInput.value = '';
     summarizeBtn.disabled = false;
     results.style.display = 'none';
 }
 
 summarizeBtn.addEventListener('click', async () => {
-    if (!selectedFile && !urlInput.value.trim()) return;
+    if (!selectedFile) return;
+
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        alert('Please enter your OpenAI API key');
+        apiKeyInput.focus();
+        return;
+    }
 
     summarizeBtn.disabled = true;
     loading.style.display = 'flex';
@@ -107,12 +158,7 @@ summarizeBtn.addEventListener('click', async () => {
 
     try {
         // Extract text from PDF
-        if (selectedFile) {
-            extractedText = await extractTextFromPDF(selectedFile);
-        } else {
-            loadingText.textContent = 'Downloading PDF...';
-            extractedText = await extractTextFromURL(urlInput.value.trim());
-        }
+        extractedText = await extractTextFromPDF(selectedFile);
 
         loadingText.textContent = 'Generating summary...';
 
@@ -124,7 +170,8 @@ summarizeBtn.addEventListener('click', async () => {
             },
             body: JSON.stringify({ 
                 text: extractedText,
-                length: currentSummaryLength 
+                length: currentSummaryLength,
+                apiKey: apiKey
             }),
         });
 
@@ -150,7 +197,6 @@ newSummaryBtn.addEventListener('click', () => {
     extractedText = null;
     fileName.textContent = '';
     fileInput.value = '';
-    urlInput.value = '';
     summarizeBtn.disabled = true;
     results.style.display = 'none';
     loading.style.display = 'none';
@@ -160,6 +206,12 @@ newSummaryBtn.addEventListener('click', () => {
 
 resummarizeBtn.addEventListener('click', async () => {
     const selectedLength = parseInt(lengthSliderResults.value);
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        alert('Please enter your OpenAI API key');
+        apiKeyInput.focus();
+        return;
+    }
     
     resummarizeBtn.disabled = true;
     loading.style.display = 'flex';
@@ -173,7 +225,8 @@ resummarizeBtn.addEventListener('click', async () => {
             },
             body: JSON.stringify({ 
                 text: extractedText,
-                length: selectedLength 
+                length: selectedLength,
+                apiKey: apiKey
             }),
         });
 
@@ -198,6 +251,13 @@ askBtn.addEventListener('click', async () => {
     const question = questionInput.value.trim();
     if (!question || !extractedText) return;
 
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        alert('Please enter your OpenAI API key');
+        apiKeyInput.focus();
+        return;
+    }
+
     askBtn.disabled = true;
     const originalText = askBtn.textContent;
     askBtn.textContent = 'Asking...';
@@ -210,7 +270,8 @@ askBtn.addEventListener('click', async () => {
             },
             body: JSON.stringify({ 
                 text: extractedText,
-                question: question
+                question: question,
+                apiKey: apiKey
             }),
         });
 
@@ -249,24 +310,6 @@ async function extractTextFromPDF(file) {
     }
     
     return fullText;
-}
-
-async function extractTextFromURL(url) {
-    const response = await fetch('/download-pdf', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: url }),
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to download PDF');
-    }
-
-    const data = await response.json();
-    return data.text;
 }
 
 function displaySummary(summary, sections) {
@@ -320,9 +363,13 @@ function displaySummary(summary, sections) {
 function displayQA(question, answer) {
     const qaItem = document.createElement('div');
     qaItem.className = 'qa-item';
+    
+    // Convert markdown bold (**text**) to HTML bold (<strong>text</strong>)
+    const highlightedAnswer = answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
     qaItem.innerHTML = `
         <div class="qa-question">❓ ${question}</div>
-        <div class="qa-answer">${answer}</div>
+        <div class="qa-answer">${highlightedAnswer}</div>
     `;
     qaHistory.appendChild(qaItem);
     qaHistory.scrollTop = qaHistory.scrollHeight;

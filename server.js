@@ -11,14 +11,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('.'));
 
-// Initialize OpenAI client
-let client;
-if (process.env.OPENAI_API_KEY) {
-    client = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
-}
-
 const SUMMARY_PROMPT_TEMPLATE = (length) => {
     const lengthGuides = {
         1: 'very brief (a few lines)',
@@ -102,17 +94,21 @@ function parseSummaryIntoSections(summary) {
 
 app.post('/summarize', async (req, res) => {
     try {
-        const { text, length = 3 } = req.body;
+        const { text, length = 3, apiKey } = req.body;
 
         if (!text) {
             return res.status(400).json({ error: 'No text provided' });
         }
 
-        if (!client) {
-            return res.status(500).json({ 
-                error: 'OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.' 
+        if (!apiKey) {
+            return res.status(400).json({ 
+                error: 'OpenAI API key not provided. Please enter your API key in the UI.' 
             });
         }
+
+        const client = new OpenAI({
+            apiKey: apiKey,
+        });
 
         // Truncate text if too long (to stay within token limits)
         const maxTokens = 8000; // Rough estimate: 1 token ≈ 4 characters
@@ -145,17 +141,21 @@ app.post('/summarize', async (req, res) => {
 
 app.post('/ask', async (req, res) => {
     try {
-        const { text, question } = req.body;
+        const { text, question, apiKey } = req.body;
 
         if (!text || !question) {
             return res.status(400).json({ error: 'Missing text or question' });
         }
 
-        if (!client) {
-            return res.status(500).json({ 
-                error: 'OpenAI API key not configured.' 
+        if (!apiKey) {
+            return res.status(400).json({ 
+                error: 'OpenAI API key not provided. Please enter your API key in the UI.' 
             });
         }
+
+        const client = new OpenAI({
+            apiKey: apiKey,
+        });
 
         // Truncate text if too long
         const maxTokens = 8000;
@@ -167,7 +167,7 @@ app.post('/ask', async (req, res) => {
             messages: [
                 {
                     role: 'user',
-                    content: `Based on the following paper text, answer this question: "${question}"\n\nPaper text:\n${truncatedText}`,
+                    content: `Based on the following paper text, answer this question: "${question}"\n\nIMPORTANT: Use **text** (markdown bold syntax with double asterisks) to highlight the most important concepts, key findings, and critical terms in your answer.\n\nPaper text:\n${truncatedText}`,
                 }
             ],
         });
@@ -183,71 +183,7 @@ app.post('/ask', async (req, res) => {
     }
 });
 
-app.post('/download-pdf', async (req, res) => {
-    try {
-        const { url } = req.body;
-
-        if (!url) {
-            return res.status(400).json({ error: 'No URL provided' });
-        }
-
-        // Validate URL
-        try {
-            new URL(url);
-        } catch {
-            return res.status(400).json({ error: 'Invalid URL' });
-        }
-
-        // Download PDF
-        const pdfBuffer = await downloadFile(url);
-
-        // Extract text from PDF
-        const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.js');
-        const pdf = await getDocument({ data: pdfBuffer }).promise;
-        
-        let fullText = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            fullText += pageText + '\n';
-        }
-
-        res.json({ text: fullText });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ 
-            error: error.message || 'Failed to download and extract PDF' 
-        });
-    }
-});
-
-function downloadFile(url) {
-    return new Promise((resolve, reject) => {
-        const protocol = url.startsWith('https') ? https : http;
-        
-        protocol.get(url, { timeout: 10000 }, (response) => {
-            // Follow redirects
-            if (response.statusCode === 301 || response.statusCode === 302) {
-                return downloadFile(response.headers.location).then(resolve).catch(reject);
-            }
-
-            if (response.statusCode !== 200) {
-                reject(new Error(`Failed to download: HTTP ${response.statusCode}`));
-                return;
-            }
-
-            const chunks = [];
-            response.on('data', chunk => chunks.push(chunk));
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        }).on('error', reject);
-    });
-}
-
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    if (!process.env.OPENAI_API_KEY) {
-        console.log('Make sure to set OPENAI_API_KEY environment variable');
-    }
+    console.log('Enter your OpenAI API key in the UI to use the application');
 });

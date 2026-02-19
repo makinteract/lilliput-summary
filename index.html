@@ -92,6 +92,7 @@
             color: #999;
             font-weight: 500;
             position: relative;
+            display: none;
         }
 
         .divider::before {
@@ -109,13 +110,14 @@
             z-index: 1;
             background: white;
             position: relative;
-            display: inline-block;
+            display: none;
             padding: 0 10px;
             width: 100%;
         }
 
         .url-input-section {
             margin-bottom: 30px;
+            display: none;
         }
 
         .url-input {
@@ -266,24 +268,6 @@
 
         .results.show {
             display: block;
-        }
-
-        .summary-box {
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            border-radius: 8px;
-            line-height: 1.8;
-            color: #333;
-        }
-
-        .summary-box p {
-            margin-bottom: 15px;
-            text-align: justify;
-        }
-
-        .summary-box p:last-child {
-            margin-bottom: 0;
         }
 
         .summary-sections {
@@ -484,6 +468,108 @@
             line-height: 1.6;
         }
 
+        .api-key-section {
+            background: #f0f2ff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 0;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .api-key-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            cursor: pointer;
+            background: #f0f2ff;
+            transition: background 0.3s ease;
+        }
+
+        .api-key-header:hover {
+            background: #e8ecff;
+        }
+
+        .api-key-header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .api-key-toggle {
+            display: inline-block;
+            transition: transform 0.3s ease;
+            font-size: 12px;
+            color: #667eea;
+        }
+
+        .api-key-toggle.open {
+            transform: rotate(180deg);
+        }
+
+        .api-key-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 15px;
+        }
+
+        .api-key-content.open {
+            max-height: 100px;
+            padding: 0 15px 15px 15px;
+        }
+
+        .api-key-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .api-key-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .api-key-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: monospace;
+            transition: all 0.3s ease;
+        }
+
+        .api-key-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .api-key-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .api-key-status.set {
+            background: #e8f5e9;
+            color: #27ae60;
+        }
+
+        .api-key-status.not-set {
+            background: #fee;
+            color: #c0392b;
+        }
+
         .input-section {
             display: flex;
             flex-direction: column;
@@ -528,6 +614,20 @@
         <h1>📄 PDF Paper Summarizer</h1>
         <p class="subtitle">Upload a PDF research paper or paste a URL to get an AI-powered summary</p>
 
+        <!-- API Key Section -->
+        <div class="api-key-section">
+            <div class="api-key-header" id="apiKeyHeader">
+                <div class="api-key-header-title">
+                    <span>🔑 OpenAI API Key</span>
+                    <span class="api-key-status not-set" id="apiKeyStatus">Not set</span>
+                </div>
+                <span class="api-key-toggle" id="apiKeyToggle">▼</span>
+            </div>
+            <div class="api-key-content" id="apiKeyContent">
+                <input type="password" id="apiKeyInput" placeholder="sk-..." class="api-key-input" />
+            </div>
+        </div>
+
         <!-- Input Section -->
         <div id="inputSection">
             <!-- File Upload -->
@@ -537,14 +637,6 @@
                 <div class="upload-subtext">PDF files only (max 10MB)</div>
                 <input type="file" id="fileInput" accept=".pdf" />
                 <div class="file-name" id="fileName"></div>
-            </div>
-
-            <!-- Or Divider -->
-            <div class="divider">OR</div>
-
-            <!-- URL Input -->
-            <div class="url-input-section">
-                <input type="text" id="urlInput" placeholder="Paste PDF URL here..." class="url-input" />
             </div>
 
             <!-- Summary Length Slider -->

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Paper Summarizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-section:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+
+        .upload-section input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #333;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 13px;
+        }
+
+        .file-name {
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            color: #999;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: #ddd;
+            z-index: 0;
+        }
+
+        .divider {
+            z-index: 1;
+            background: white;
+            position: relative;
+            display: inline-block;
+            padding: 0 10px;
+            width: 100%;
+        }
+
+        .url-input-section {
+            margin-bottom: 30px;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .slider-section {
+            margin-bottom: 30px;
+        }
+
+        .slider-section label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        #lengthValue {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        .btn-clear {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-clear:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-new {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        .btn-new:hover {
+            background: #764ba2;
+        }
+
+        .btn-ask {
+            background: #667eea;
+            color: white;
+            padding: 10px 24px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-ask:hover {
+            background: #764ba2;
+        }
+
+        .btn-ask:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: 500;
+            margin: 20px 0;
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .summary-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .summary-box p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .summary-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .summary-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .section {
+            border-radius: 8px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+        }
+
+        .section:nth-child(1) {
+            border-left-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(102, 126, 234, 0.02) 100%);
+        }
+
+        .section:nth-child(2) {
+            border-left-color: #764ba2;
+            background: linear-gradient(135deg, rgba(118, 75, 162, 0.05) 0%, rgba(118, 75, 162, 0.02) 100%);
+        }
+
+        .section:nth-child(3) {
+            border-left-color: #27ae60;
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.05) 0%, rgba(39, 174, 96, 0.02) 100%);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section:nth-child(1) .section-title {
+            color: #667eea;
+        }
+
+        .section:nth-child(2) .section-title {
+            color: #764ba2;
+        }
+
+        .section:nth-child(3) .section-title {
+            color: #27ae60;
+        }
+
+        .section-icon {
+            font-size: 20px;
+        }
+
+        .section-content {
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .section-content p {
+            margin-bottom: 12px;
+        }
+
+        .section-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .error {
+            background: #fee;
+            border-left-color: #e74c3c;
+            color: #c0392b;
+            margin-top: 20px;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            border-left-color: #27ae60;
+            color: #27ae60;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .results-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 22px;
+        }
+
+        .qa-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .qa-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .results-slider {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .results-slider label {
+            font-size: 14px;
+        }
+
+        .btn-resummarize {
+            margin-left: 15px;
+            padding: 8px 16px;
+            font-size: 13px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-resummarize:hover {
+            background: #764ba2;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-resummarize:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .qa-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .question-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .qa-history {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .qa-item {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .qa-question {
+            background: #f0f2ff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .qa-answer {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-summarize {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-summarize:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-summarize:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 PDF Paper Summarizer</h1>
+        <p class="subtitle">Upload a PDF research paper or paste a URL to get an AI-powered summary</p>
+
+        <!-- Input Section -->
+        <div id="inputSection">
+            <!-- File Upload -->
+            <div class="upload-section" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Click to upload or drag and drop</div>
+                <div class="upload-subtext">PDF files only (max 10MB)</div>
+                <input type="file" id="fileInput" accept=".pdf" />
+                <div class="file-name" id="fileName"></div>
+            </div>
+
+            <!-- Or Divider -->
+            <div class="divider">OR</div>
+
+            <!-- URL Input -->
+            <div class="url-input-section">
+                <input type="text" id="urlInput" placeholder="Paste PDF URL here..." class="url-input" />
+            </div>
+
+            <!-- Summary Length Slider -->
+            <div class="slider-section">
+                <label for="lengthSlider">Summary Length:</label>
+                <div class="slider-container">
+                    <input type="range" id="lengthSlider" min="1" max="5" value="3" class="slider" />
+                    <div class="slider-labels">
+                        <span>Brief</span>
+                        <span>Detailed</span>
+                    </div>
+                </div>
+                <span id="lengthValue">Medium</span>
+            </div>
+
+            <!-- Buttons -->
+            <div class="button-group">
+                <button class="btn-summarize" id="summarizeBtn" disabled>
+                    Summarize with AI
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading" style="display: none;">
+            <span class="spinner"></span>
+            <span id="loadingText">Generating summary...</span>
+        </div>
+
+        <!-- Summary and Q&A Section -->
+        <div class="results" id="results" style="display: none;">
+            <div class="results-header">
+                <h2>Summary</h2>
+                <button class="btn-new" id="newSummaryBtn">New Summary</button>
+            </div>
+
+            <!-- Summary Length Slider (visible during results) -->
+            <div class="slider-section results-slider">
+                <label for="lengthSliderResults">Re-summarize with different length:</label>
+                <div class="slider-container">
+                    <input type="range" id="lengthSliderResults" min="1" max="5" value="3" class="slider" />
+                    <div class="slider-labels">
+                        <span>Brief</span>
+                        <span>Detailed</span>
+                    </div>
+                </div>
+                <span id="lengthValueResults">Medium</span>
+                <button class="btn-resummarize" id="resummarizeBtn">Re-summarize</button>
+            </div>
+
+            <div class="summary-box" id="summaryContent"></div>
+
+            <!-- Q&A Section -->
+            <div class="qa-section">
+                <h3>Ask Questions About This Paper</h3>
+                <div class="qa-container">
+                    <input type="text" id="questionInput" placeholder="Ask a question about the paper..." class="question-input" />
+                    <button class="btn-ask" id="askBtn">Ask</button>
+                </div>
+                <div class="qa-history" id="qaHistory"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>

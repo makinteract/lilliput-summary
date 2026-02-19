@@ -21,23 +21,27 @@ A web application that allows you to upload PDF research papers and get AI-power
 ## Setup Instructions
 
 1. **Clone or navigate to the project directory**
+
    ```bash
    cd reseracher-aid
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
    - Copy the `.env` file and add your OpenAI API key:
+
    ```bash
    OPENAI_API_KEY=sk-your-actual-api-key-here
    PORT=3000
    ```
 
 4. **Start the server**
+
    ```bash
    npm start
    ```
@@ -92,14 +96,17 @@ reseracher-aid/
 ## Troubleshooting
 
 **"OpenAI API key not configured"**
+
 - Make sure you've added your API key to the `.env` file
 - Restart the server after updating `.env`
 
 **"Failed to generate summary"**
+
 - Check your OpenAI API key is valid
 - Check your account has sufficient credits
 - The paper might be too long (try a shorter paper first)
 
 **PDF extraction issues**
+
 - Some PDFs with complex layouts may not extract text properly
 - Text-based PDFs work best

@@ -151,25 +151,7 @@ fileInput.addEventListener('change', (e) => {
   }
 });
 
-lengthSlider.addEventListener('input', (e) => {
-  currentSummaryLength = parseInt(e.target.value);
-  lengthValue.textContent = lengthLabels[currentSummaryLength - 1];
-});
-
-lengthSliderResults.addEventListener('input', (e) => {
-  const selectedLength = parseInt(e.target.value);
-  lengthValueResults.textContent = lengthLabels[selectedLength - 1];
-});
-
-lengthSlider.addEventListener('input', (e) => {
-  currentSummaryLength = parseInt(e.target.value);
-  lengthValue.textContent = lengthLabels[currentSummaryLength - 1];
-});
-
-lengthSliderResults.addEventListener('input', (e) => {
-  const selectedLength = parseInt(e.target.value);
-  lengthValueResults.textContent = lengthLabels[selectedLength - 1];
-});
+// Removed length slider handlers - now using per-section sliders instead
 
 // Section checkbox listeners
 checkboxes.problem.addEventListener('change', (e) => {

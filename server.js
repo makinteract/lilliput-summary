@@ -297,7 +297,13 @@ app.post('/ask', async (req, res) => {
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log('Enter your OpenAI API key in the UI to use the application');
-});
+// Export for Vercel serverless
+module.exports = app;
+
+// For local development
+if (require.main === module) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log('Enter your OpenAI API key in the UI to use the application');
+    });
+}

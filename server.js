@@ -297,7 +297,7 @@ app.post('/ask', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
     console.log('Enter your OpenAI API key in the UI to use the application');
 });

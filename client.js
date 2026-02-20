@@ -1,6 +1,11 @@
-// Set up PDF.js worker
+// Set PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// API Configuration - works for both localhost and cloud
+// In localhost: uses relative paths (e.g., /summarize)
+// In cloud: automatically uses the same domain (e.g., https://your-domain.com/summarize)
+const API_BASE_URL = window.location.origin;
 
 let selectedFile = null;
 let extractedText = null;
@@ -263,7 +268,7 @@ summarizeBtn.addEventListener('click', async () => {
     loadingText.textContent = 'Generating summary...';
 
     // Send to backend for summarization
-    const response = await fetch('/summarize', {
+    const response = await fetch(`${API_BASE_URL}/summarize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -355,24 +360,24 @@ resummarizeBtn.addEventListener('click', async () => {
   loading.style.display = 'flex';
   loadingText.textContent = 'Regenerating summary...';
 
-  try {
-    const response = await fetch('/summarize', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: extractedText,
-        length: 3, // Not used when sections object is provided, but included for compatibility
-        apiKey: apiKey,
-        language: selectedLanguage,
-        sections: {
-          problem: { visible: sectionVisible.problem, length: sectionLengths.problem },
-          system: { visible: sectionVisible.system, length: sectionLengths.system },
-          evaluation: { visible: sectionVisible.evaluation, length: sectionLengths.evaluation }
-        }
-      }),
-    });
+   try {
+     const response = await fetch(`${API_BASE_URL}/summarize`, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+       },
+       body: JSON.stringify({
+         text: extractedText,
+         length: 3, // Not used when sections object is provided, but included for compatibility
+         apiKey: apiKey,
+         language: selectedLanguage,
+         sections: {
+           problem: { visible: sectionVisible.problem, length: sectionLengths.problem },
+           system: { visible: sectionVisible.system, length: sectionLengths.system },
+           evaluation: { visible: sectionVisible.evaluation, length: sectionLengths.evaluation }
+         }
+       }),
+     });
 
     if (!response.ok) {
       const error = await response.json();
@@ -424,19 +429,19 @@ askBtn.addEventListener('click', async () => {
   const originalText = askBtn.textContent;
   askBtn.textContent = 'Asking...';
 
-  try {
-    const response = await fetch('/ask', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: extractedText,
-        question: question,
-        apiKey: apiKey,
-        language: selectedLanguage,
-      }),
-    });
+   try {
+     const response = await fetch(`${API_BASE_URL}/ask`, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+       },
+       body: JSON.stringify({
+         text: extractedText,
+         question: question,
+         apiKey: apiKey,
+         language: selectedLanguage,
+       }),
+     });
 
     if (!response.ok) {
       const error = await response.json();

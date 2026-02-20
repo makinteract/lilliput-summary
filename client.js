@@ -187,20 +187,17 @@ languageSelect.addEventListener('change', (e) => {
   selectedLanguage = e.target.value;
 });
 
-// Results section checkbox listeners - ONLY for display visibility, not for regeneration
+// Results section checkbox listeners - update sectionVisible for next regeneration
 checkboxesResults.problem.addEventListener('change', (e) => {
-  // Update display only - don't affect regeneration logic
-  updateResultsDisplay();
+  sectionVisible.problem = e.target.checked;
 });
 
 checkboxesResults.system.addEventListener('change', (e) => {
-  // Update display only - don't affect regeneration logic
-  updateResultsDisplay();
+  sectionVisible.system = e.target.checked;
 });
 
 checkboxesResults.evaluation.addEventListener('change', (e) => {
-  // Update display only - don't affect regeneration logic
-  updateResultsDisplay();
+  sectionVisible.evaluation = e.target.checked;
 });
 
 // Results section slider listeners
@@ -521,8 +518,11 @@ function displaySummary(summary, sections) {
       .join('');
 
     summaryContent.innerHTML = `<div class="summary-sections">${html}</div>`;
-    // Update display based on checkbox states
-    setTimeout(updateResultsDisplay, 0);
+    
+    // Sync results checkboxes with current visibility state
+    checkboxesResults.problem.checked = sectionVisible.problem;
+    checkboxesResults.system.checked = sectionVisible.system;
+    checkboxesResults.evaluation.checked = sectionVisible.evaluation;
   } else {
     // Fallback to plain text format if sections are not available
     const paragraphs = summary.split('\n\n').filter((p) => p.trim());
@@ -559,18 +559,4 @@ function displayQA(question, answer) {
    qaHistory.scrollTop = qaHistory.scrollHeight;
  }
 
-// Update the results display based on checkbox visibility settings
-function updateResultsDisplay() {
-  const sections = document.querySelectorAll('.summary-sections .section');
-  const sectionKeys = ['problem', 'system', 'evaluation'];
-  
-  sections.forEach((section, index) => {
-    const checkbox = checkboxesResults[sectionKeys[index]];
-    if (checkbox && !checkbox.checked) {
-      section.style.display = 'none';
-    } else {
-      section.style.display = 'block';
-    }
-  });
-}
 

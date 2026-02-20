@@ -85,16 +85,21 @@ Structure your response EXACTLY as follows, with each section starting on a new 
 
 ${sectionPrompt}
 
-CRITICAL INSTRUCTIONS:
+CRITICAL INSTRUCTIONS FOR LENGTH:
+${
+    sections ?
+    `- Problem section length: ${lengthGuides[sections.problem.length]}
+- System section length: ${lengthGuides[sections.system.length]}
+- Evaluation section length: ${lengthGuides[sections.evaluation.length]}` :
+    `- All sections length: ${lengthGuides[length]}`
+}
+
+OTHER CRITICAL INSTRUCTIONS:
 - ALWAYS provide content for each section, even if it's a statement that no system/evaluation exists
 - Use **text** (markdown bold syntax with double asterisks) to highlight the most important concepts, key findings, novel contributions, and critical terms
 - Keep each section clearly separated with a blank line between them
 - Start each section with its number and title as shown above
-- Respect the length requirements STRICTLY: ${
-        sections ? 
-        (sections.problem ? `Problem section must be: ${lengthGuides[sections.problem.length]}` : '') :
-        `All sections must be: ${lengthGuides[length]}`
-    }
+- Strictly adhere to the length requirements specified above
 - Respond ONLY in ${targetLanguage}
 - NEVER skip a section
 

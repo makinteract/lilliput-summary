@@ -187,17 +187,20 @@ languageSelect.addEventListener('change', (e) => {
   selectedLanguage = e.target.value;
 });
 
-// Results section checkbox listeners
+// Results section checkbox listeners - ONLY for display visibility, not for regeneration
 checkboxesResults.problem.addEventListener('change', (e) => {
-  sectionVisible.problem = e.target.checked;
+  // Update display only - don't affect regeneration logic
+  updateResultsDisplay();
 });
 
 checkboxesResults.system.addEventListener('change', (e) => {
-  sectionVisible.system = e.target.checked;
+  // Update display only - don't affect regeneration logic
+  updateResultsDisplay();
 });
 
 checkboxesResults.evaluation.addEventListener('change', (e) => {
-  sectionVisible.evaluation = e.target.checked;
+  // Update display only - don't affect regeneration logic
+  updateResultsDisplay();
 });
 
 // Results section slider listeners
@@ -518,6 +521,8 @@ function displaySummary(summary, sections) {
       .join('');
 
     summaryContent.innerHTML = `<div class="summary-sections">${html}</div>`;
+    // Update display based on checkbox states
+    setTimeout(updateResultsDisplay, 0);
   } else {
     // Fallback to plain text format if sections are not available
     const paragraphs = summary.split('\n\n').filter((p) => p.trim());
@@ -547,9 +552,25 @@ function displayQA(question, answer) {
   );
 
   qaItem.innerHTML = `
-        <div class="qa-question">❓ ${question}</div>
-        <div class="qa-answer">${highlightedAnswer}</div>
-    `;
-  qaHistory.appendChild(qaItem);
-  qaHistory.scrollTop = qaHistory.scrollHeight;
+         <div class="qa-question">❓ ${question}</div>
+         <div class="qa-answer">${highlightedAnswer}</div>
+     `;
+   qaHistory.appendChild(qaItem);
+   qaHistory.scrollTop = qaHistory.scrollHeight;
+ }
+
+// Update the results display based on checkbox visibility settings
+function updateResultsDisplay() {
+  const sections = document.querySelectorAll('.summary-sections .section');
+  const sectionKeys = ['problem', 'system', 'evaluation'];
+  
+  sections.forEach((section, index) => {
+    const checkbox = checkboxesResults[sectionKeys[index]];
+    if (checkbox && !checkbox.checked) {
+      section.style.display = 'none';
+    } else {
+      section.style.display = 'block';
+    }
+  });
 }
+

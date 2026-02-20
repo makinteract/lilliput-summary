@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('.'));
 
-const SUMMARY_PROMPT_TEMPLATE = (length) => {
+const SUMMARY_PROMPT_TEMPLATE = (length, language = 'en', sections = null) => {
     const lengthGuides = {
         1: 'very brief (a few lines)',
         2: 'brief (a few lines to one paragraph)',
@@ -20,23 +20,67 @@ const SUMMARY_PROMPT_TEMPLATE = (length) => {
         5: 'very detailed (comprehensive paragraphs)'
     };
 
-    return `Summarize the paper in three sections. Each section should span from ${lengthGuides[length]}.
+    const languageMap = {
+        'en': 'English',
+        'es': 'Spanish',
+        'fr': 'French',
+        'de': 'German',
+        'it': 'Italian',
+        'pt': 'Portuguese',
+        'ko': 'Korean',
+        'ja': 'Japanese',
+        'zh': 'Simplified Chinese',
+        'zh-TW': 'Traditional Chinese',
+        'ru': 'Russian',
+        'ar': 'Arabic'
+    };
 
-Structure your response EXACTLY as follows, with each section starting on a new line with its header:
+    const targetLanguage = languageMap[language] || 'English';
 
-1) Problem and Motivation
+    // Build the section prompt based on which sections are visible
+    let sectionPrompt = '';
+    const visibleSections = [];
+    
+    if (sections) {
+        if (sections.problem.visible) {
+            const problemLen = lengthGuides[sections.problem.length];
+            visibleSections.push(`1) Problem and Motivation\nWhat is the paper contribution? What is the gist of the paper or the main takeaway?\nLength: ${problemLen}`);
+        }
+        if (sections.system.visible) {
+            const systemLen = lengthGuides[sections.system.length];
+            visibleSections.push(`2) System\nDescribe the system, if any, or the method used to validate the work. If this is an opinion paper, state it here and describe that.\nLength: ${systemLen}`);
+        }
+        if (sections.evaluation.visible) {
+            const evalLen = lengthGuides[sections.evaluation.length];
+            visibleSections.push(`3) Evaluation\nSummarize the evaluation or any other important aspect related with the feasibility of the idea or how it is related with creativity support tools or prior research.\nLength: ${evalLen}`);
+        }
+        sectionPrompt = visibleSections.join('\n\n');
+    } else {
+        // Fallback to default sections with overall length
+        sectionPrompt = `1) Problem and Motivation
 What is the paper contribution? What is the gist of the paper or the main takeaway?
+Length: ${lengthGuides[length]}
 
 2) System
 Describe the system, if any, or the method used to validate the work. If this is an opinion paper, state it here and describe that.
+Length: ${lengthGuides[length]}
 
 3) Evaluation
 Summarize the evaluation or any other important aspect related with the feasibility of the idea or how it is related with creativity support tools or prior research.
+Length: ${lengthGuides[length]}`;
+    }
+
+    return `Summarize the paper in the following sections. Write the response in ${targetLanguage}.
+
+Structure your response EXACTLY as follows, with each section starting on a new line with its header:
+
+${sectionPrompt}
 
 IMPORTANT: 
 - Use **text** (markdown bold syntax with double asterisks) to highlight the most important concepts, key findings, novel contributions, and critical terms.
 - Keep each section clearly separated with a blank line between them.
 - Start each section with its number and title as shown above.
+- Respond ONLY in ${targetLanguage}.
 
 Here is the paper text:
 
@@ -94,7 +138,7 @@ function parseSummaryIntoSections(summary) {
 
 app.post('/summarize', async (req, res) => {
     try {
-        const { text, length = 3, apiKey } = req.body;
+        const { text, length = 3, apiKey, language = 'en', sections = null } = req.body;
 
         if (!text) {
             return res.status(400).json({ error: 'No text provided' });
@@ -120,7 +164,7 @@ app.post('/summarize', async (req, res) => {
             messages: [
                 {
                     role: 'user',
-                    content: SUMMARY_PROMPT_TEMPLATE(length) + truncatedText,
+                    content: SUMMARY_PROMPT_TEMPLATE(length, language, sections) + truncatedText,
                 }
             ],
         });
@@ -128,9 +172,9 @@ app.post('/summarize', async (req, res) => {
         const summary = message.choices[0].message.content;
 
         // Parse the summary into three sections
-        const sections = parseSummaryIntoSections(summary);
+        const parsedSections = parseSummaryIntoSections(summary);
 
-        res.json({ summary, sections });
+        res.json({ summary, sections: parsedSections });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ 
@@ -141,7 +185,7 @@ app.post('/summarize', async (req, res) => {
 
 app.post('/ask', async (req, res) => {
     try {
-        const { text, question, apiKey } = req.body;
+        const { text, question, apiKey, language = 'en' } = req.body;
 
         if (!text || !question) {
             return res.status(400).json({ error: 'Missing text or question' });
@@ -161,13 +205,30 @@ app.post('/ask', async (req, res) => {
         const maxTokens = 8000;
         const truncatedText = text.substring(0, maxTokens * 4);
 
+        const languageMap = {
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'ko': 'Korean',
+            'ja': 'Japanese',
+            'zh': 'Simplified Chinese',
+            'zh-TW': 'Traditional Chinese',
+            'ru': 'Russian',
+            'ar': 'Arabic'
+        };
+
+        const targetLanguage = languageMap[language] || 'English';
+
         const message = await client.chat.completions.create({
             model: 'gpt-4o-mini',
             max_tokens: 512,
             messages: [
                 {
                     role: 'user',
-                    content: `Based on the following paper text, answer this question: "${question}"\n\nIMPORTANT: Use **text** (markdown bold syntax with double asterisks) to highlight the most important concepts, key findings, and critical terms in your answer.\n\nPaper text:\n${truncatedText}`,
+                    content: `Based on the following paper text, answer this question in ${targetLanguage}: "${question}"\n\nIMPORTANT: Use **text** (markdown bold syntax with double asterisks) to highlight the most important concepts, key findings, and critical terms in your answer.\n\nRespond ONLY in ${targetLanguage}.\n\nPaper text:\n${truncatedText}`,
                 }
             ],
         });

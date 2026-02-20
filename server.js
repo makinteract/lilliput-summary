@@ -108,8 +108,8 @@ Here is the paper text:
 `;
 };
 
-// Parse summary into three sections
-function parseSummaryIntoSections(summary) {
+// Parse summary into sections based on which sections are visible
+function parseSummaryIntoSections(summary, visibleSections = null) {
     const sectionTitles = [
         'Problem and Motivation',
         'System',
@@ -124,40 +124,56 @@ function parseSummaryIntoSections(summary) {
     
     const sections = {};
     
+    // Determine which sections should be parsed
+    const shouldParseSections = [
+        !visibleSections || visibleSections.problem?.visible !== false,
+        !visibleSections || visibleSections.system?.visible !== false,
+        !visibleSections || visibleSections.evaluation?.visible !== false
+    ];
+    
     // Try to extract sections based on numbered headers
     const sectionRegex = /\d\)\s*([^\n]+)\n([\s\S]*?)(?=\d\)|$)/g;
     let match;
     let sectionIndex = 0;
+    let sectionNumber = 1;
     
     while ((match = sectionRegex.exec(summary)) !== null && sectionIndex < 3) {
         const title = match[1].trim();
         let content = match[2].trim();
+        
+        // Find the next visible section to assign this content to
+        while (sectionIndex < 3 && !shouldParseSections[sectionIndex]) {
+            // Fill in hidden sections with empty content
+            sections[sectionIndex] = {
+                title: sectionTitles[sectionIndex],
+                content: ''
+            };
+            sectionIndex++;
+        }
         
         // If content is empty or very minimal, provide fallback
         if (!content || content.length < 20) {
             content = fallbackMessages[sectionIndex];
         }
         
-        sections[sectionIndex] = {
-            title: sectionTitles[sectionIndex],
-            content: content
-        };
-        sectionIndex++;
-    }
-    
-    // If parsing failed, try to split by section pattern
-    if (sectionIndex === 0) {
-        const parts = summary.split(/\n\n+/);
-        for (let i = 0; i < Math.min(3, parts.length); i++) {
-            let content = parts[i].trim();
-            if (!content || content.length < 20) {
-                content = fallbackMessages[i];
-            }
-            sections[i] = {
-                title: sectionTitles[i],
+        if (sectionIndex < 3) {
+            sections[sectionIndex] = {
+                title: sectionTitles[sectionIndex],
                 content: content
             };
+            sectionIndex++;
         }
+    }
+    
+    // Fill in any remaining visible sections
+    while (sectionIndex < 3) {
+        if (shouldParseSections[sectionIndex]) {
+            sections[sectionIndex] = {
+                title: sectionTitles[sectionIndex],
+                content: ''
+            };
+        }
+        sectionIndex++;
     }
     
     // Ensure all three sections exist with content
@@ -165,11 +181,8 @@ function parseSummaryIntoSections(summary) {
         if (!sections[i]) {
             sections[i] = {
                 title: sectionTitles[i],
-                content: fallbackMessages[i]
+                content: ''
             };
-        } else if (!sections[i].content || sections[i].content.length < 20) {
-            // If section exists but is empty or too short, use fallback
-            sections[i].content = fallbackMessages[i];
         }
     }
     
@@ -211,8 +224,8 @@ app.post('/summarize', async (req, res) => {
 
         const summary = message.choices[0].message.content;
 
-        // Parse the summary into three sections
-        const parsedSections = parseSummaryIntoSections(summary);
+        // Parse the summary into three sections, passing visibility information
+        const parsedSections = parseSummaryIntoSections(summary, sections);
 
         res.json({ summary, sections: parsedSections });
     } catch (error) {

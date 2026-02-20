@@ -13,11 +13,11 @@ app.use(express.static('.'));
 
 const SUMMARY_PROMPT_TEMPLATE = (length, language = 'en', sections = null) => {
     const lengthGuides = {
-        1: 'very brief (a few lines)',
-        2: 'brief (a few lines to one paragraph)',
-        3: 'medium (a few paragraphs)',
-        4: 'detailed (several paragraphs)',
-        5: 'very detailed (comprehensive paragraphs)'
+        1: 'exactly one sentence',
+        2: 'a short sentence or two',
+        3: 'a few sentences (about one paragraph)',
+        4: 'multiple paragraphs (detailed explanation)',
+        5: 'multiple detailed paragraphs (comprehensive explanation)'
     };
 
     const languageMap = {
@@ -44,15 +44,24 @@ const SUMMARY_PROMPT_TEMPLATE = (length, language = 'en', sections = null) => {
     if (sections) {
         if (sections.problem.visible) {
             const problemLen = lengthGuides[sections.problem.length];
-            visibleSections.push(`1) Problem and Motivation\nWhat is the paper contribution? What is the gist of the paper or the main takeaway?\nLength: ${problemLen}`);
+            visibleSections.push(`1) Problem and Motivation
+What is the paper contribution? What is the gist of the paper or the main takeaway?
+Length: ${problemLen}
+If no clear problem is identified, explicitly state "No specific problem or motivation was identified in this paper."`);
         }
         if (sections.system.visible) {
             const systemLen = lengthGuides[sections.system.length];
-            visibleSections.push(`2) System\nDescribe the system, if any, or the method used to validate the work. If this is an opinion paper, state it here and describe that.\nLength: ${systemLen}`);
+            visibleSections.push(`2) System
+Describe the system, method, or approach used. If this is an opinion paper, state it here and describe that.
+Length: ${systemLen}
+If no system was designed or no method is described, explicitly state "No system or method was described in this paper."`);
         }
         if (sections.evaluation.visible) {
             const evalLen = lengthGuides[sections.evaluation.length];
-            visibleSections.push(`3) Evaluation\nSummarize the evaluation or any other important aspect related with the feasibility of the idea or how it is related with creativity support tools or prior research.\nLength: ${evalLen}`);
+            visibleSections.push(`3) Evaluation
+Summarize the evaluation, experiments, or validation. Include feasibility and implications.
+Length: ${evalLen}
+If no evaluation was performed, explicitly state "No evaluation or experiments were performed."`);
         }
         sectionPrompt = visibleSections.join('\n\n');
     } else {
@@ -62,11 +71,11 @@ What is the paper contribution? What is the gist of the paper or the main takeaw
 Length: ${lengthGuides[length]}
 
 2) System
-Describe the system, if any, or the method used to validate the work. If this is an opinion paper, state it here and describe that.
+Describe the system, method, or approach used. If this is an opinion paper, state it here and describe that.
 Length: ${lengthGuides[length]}
 
 3) Evaluation
-Summarize the evaluation or any other important aspect related with the feasibility of the idea or how it is related with creativity support tools or prior research.
+Summarize the evaluation, experiments, or validation. Include feasibility and implications.
 Length: ${lengthGuides[length]}`;
     }
 
@@ -76,11 +85,18 @@ Structure your response EXACTLY as follows, with each section starting on a new 
 
 ${sectionPrompt}
 
-IMPORTANT: 
-- Use **text** (markdown bold syntax with double asterisks) to highlight the most important concepts, key findings, novel contributions, and critical terms.
-- Keep each section clearly separated with a blank line between them.
-- Start each section with its number and title as shown above.
-- Respond ONLY in ${targetLanguage}.
+CRITICAL INSTRUCTIONS:
+- ALWAYS provide content for each section, even if it's a statement that no system/evaluation exists
+- Use **text** (markdown bold syntax with double asterisks) to highlight the most important concepts, key findings, novel contributions, and critical terms
+- Keep each section clearly separated with a blank line between them
+- Start each section with its number and title as shown above
+- Respect the length requirements STRICTLY: ${
+        sections ? 
+        (sections.problem ? `Problem section must be: ${lengthGuides[sections.problem.length]}` : '') :
+        `All sections must be: ${lengthGuides[length]}`
+    }
+- Respond ONLY in ${targetLanguage}
+- NEVER skip a section
 
 Here is the paper text:
 
@@ -95,6 +111,12 @@ function parseSummaryIntoSections(summary) {
         'Evaluation'
     ];
     
+    const fallbackMessages = [
+        'No specific problem or motivation was identified in this paper.',
+        'No system or method was described in this paper.',
+        'No evaluation or experiments were performed.'
+    ];
+    
     const sections = {};
     
     // Try to extract sections based on numbered headers
@@ -104,7 +126,13 @@ function parseSummaryIntoSections(summary) {
     
     while ((match = sectionRegex.exec(summary)) !== null && sectionIndex < 3) {
         const title = match[1].trim();
-        const content = match[2].trim();
+        let content = match[2].trim();
+        
+        // If content is empty or very minimal, provide fallback
+        if (!content || content.length < 20) {
+            content = fallbackMessages[sectionIndex];
+        }
+        
         sections[sectionIndex] = {
             title: sectionTitles[sectionIndex],
             content: content
@@ -116,20 +144,27 @@ function parseSummaryIntoSections(summary) {
     if (sectionIndex === 0) {
         const parts = summary.split(/\n\n+/);
         for (let i = 0; i < Math.min(3, parts.length); i++) {
+            let content = parts[i].trim();
+            if (!content || content.length < 20) {
+                content = fallbackMessages[i];
+            }
             sections[i] = {
                 title: sectionTitles[i],
-                content: parts[i].trim()
+                content: content
             };
         }
     }
     
-    // Ensure all three sections exist
+    // Ensure all three sections exist with content
     for (let i = 0; i < 3; i++) {
         if (!sections[i]) {
             sections[i] = {
                 title: sectionTitles[i],
-                content: ''
+                content: fallbackMessages[i]
             };
+        } else if (!sections[i].content || sections[i].content.length < 20) {
+            // If section exists but is empty or too short, use fallback
+            sections[i].content = fallbackMessages[i];
         }
     }
     
